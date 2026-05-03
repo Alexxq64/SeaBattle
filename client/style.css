@@ -1,0 +1,202 @@
+* {
+    box-sizing: border-box;
+    user-select: none;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background: #2c3e66;
+    margin: 0;
+    padding: 20px;
+}
+
+.game-container {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    flex-wrap: wrap;
+}
+
+.board-container {
+    background: #1a2a4a;
+    padding: 15px;
+    border-radius: 12px;
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(10, 35px);
+    grid-template-rows: repeat(10, 35px);
+    gap: 2px;
+    background: #0f1a2e;
+    padding: 10px;
+}
+
+.cell {
+    background-color: #2c4a7a;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: 0.1s;
+}
+
+.cell:hover {
+    background-color: #3a6a9a;
+}
+
+/* Типы клеток */
+.cell.ship {
+    background-color: #4a7a4a;
+}
+
+.cell.hit {
+    background-color: #cc3333;
+    position: relative;
+}
+
+.cell.miss {
+    background-color: #666;
+}
+
+.controls {
+    margin: 20px;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    background: #4a7a9a;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+
+.status {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 15px;
+    color: white;
+}
+
+.mode-select {
+    margin-bottom: 15px;
+}
+
+.mode-select label {
+    margin: 0 15px;
+    color: white;
+    cursor: pointer;
+}
+
+.difficulty-select {
+    margin-bottom: 15px;
+    color: white;
+}
+
+.difficulty-select select {
+    padding: 5px 10px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.hidden {
+    display: none;
+}
+
+/* =========================
+   ЭКРАН РАССТАНОВКИ
+========================= */
+
+.placement-container {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.placement-board-container {
+    background: #1a2a4a;
+    padding: 15px;
+    border-radius: 12px;
+}
+
+.ship-palette {
+    background: #1a2a4a;
+    padding: 15px;
+    border-radius: 12px;
+    min-width: 150px;
+}
+
+.ship-palette h3 {
+    color: white;
+    margin-top: 0;
+    text-align: center;
+}
+
+.palette-ship {
+    background: #4a7a4a;
+    margin: 10px;
+    padding: 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: 0.2s;
+    color: white;
+}
+
+.palette-ship:hover {
+    background: #5a9a5a;
+    transform: scale(1.02);
+}
+
+.palette-ship.placed {
+    background: #2a4a2a;
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ship-preview {
+    display: flex;
+    gap: 2px;
+}
+
+.ship-cell {
+    width: 25px;
+    height: 25px;
+    background-color: #4a7a4a;
+    border-radius: 3px;
+}
+
+.ship-preview.horizontal {
+    flex-direction: row;
+}
+
+.ship-preview.vertical {
+    flex-direction: column;
+}
+
+.placement-controls {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.placement-controls button {
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+#placementReadyBtn:disabled {
+    background: #666;
+    cursor: not-allowed;
+}
+
+.cell.placement-highlight {
+    background-color: #6a9a6a;
+    box-shadow: 0 0 0 2px #ffcc00;
+}

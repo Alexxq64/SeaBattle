@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Морской бой</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Морской бой</h1>
+
+    <!-- ЭКРАН 1: СТАРТ (приветствие + выбор режима) -->
+    <div id="startScreen" class="screen">
+        <h2>Добро пожаловать!</h2>
+        <div class="mode-buttons">
+            <button id="pveBtn">🎮 PvE (против компьютера)</button>
+            <button id="pvpBtn">🌐 PvP (против игрока по сети)</button>
+        </div>
+    </div>
+
+    <!-- ЭКРАН 2: ОЖИДАНИЕ (PvP) -->
+    <div id="waitingScreen" class="screen hidden">
+        <h2>Ожидание второго игрока...</h2>
+        <p>Отправьте ссылку другу:</p>
+        <div class="invite-link">
+            <span id="gameLink"></span>
+            <button id="copyLinkBtn">📋 Копировать</button>
+        </div>
+        <button id="cancelWaitingBtn" class="cancel-btn">Отмена</button>
+    </div>
+
+    <!-- ЭКРАН 3: РАССТАНОВКА КОРАБЛЕЙ -->
+    <div id="placementScreen" class="screen hidden">
+        <div class="placement-container">
+            <div class="placement-board-container">
+                <h3>Расстановка кораблей</h3>
+                <div class="board" id="placement-board"></div>
+            </div>
+            <div class="ship-palette" id="ship-palette">
+                <!-- сюда будут рендериться корабли -->
+            </div>
+        </div>
+        <div class="placement-controls">
+            <button id="randomPlaceBtn">🎲 Случайно</button>
+            <button id="clearBoardBtn">🗑 Очистить</button>
+            <button id="placementReadyBtn" disabled>✅ Готов</button>
+        </div>
+        <div id="placement-status" class="status"></div>
+    </div>
+
+    <!-- ЭКРАН 4: ИГРА -->
+    <div id="gameScreen" class="screen hidden">
+        <div class="game-container">
+            <div class="board-container">
+                <h3>🚢 Ваше поле</h3>
+                <div class="board" id="player-board"></div>
+            </div>
+            <div class="board-container">
+                <h3>🎯 Поле противника</h3>
+                <div class="board" id="enemy-board"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="difficulty-select hidden" id="difficulty-container">
+                <label>🤖 Сложность AI: </label>
+                <select id="difficulty">
+                    <option value="random">🎲 Случайная</option>
+                    <option value="smart">🧠 Умная</option>
+                    <option value="dense">📦 Плотная</option>
+                    <option value="edge">📐 По краям</option>
+                </select>
+            </div>
+            <button id="new-game">🔄 Новая игра</button>
+        </div>
+
+        <div class="status" id="status">Выберите режим игры</div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module" src="main.js"></script>
+</body>
+</html>
