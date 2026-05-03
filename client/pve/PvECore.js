@@ -139,7 +139,6 @@ function playerAttack(x, y) {
             detachClickHandler();
             return;
         }
-        // Дополнительный ход — ничего не меняем
         return;
     }
     

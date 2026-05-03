@@ -8,7 +8,7 @@ import {
     BOARD_SIZE, 
     CELL_SHIP, 
     CELL_EMPTY 
-} from '../core/attack.js';  // ← ИСПРАВЛЕНО
+} from '../core/attack.js';
 import { 
     createEmptyPlacementBoard, 
     placeShip, 
