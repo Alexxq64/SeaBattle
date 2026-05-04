@@ -43,6 +43,14 @@
         <div class="placement-controls">
             <button id="randomPlaceBtn">🎲 Случайно</button>
             <button id="clearBoardBtn">🗑 Очистить</button>
+            <div class="difficulty-select" id="difficulty-container">
+                <label>🤖 Сложность AI: </label>
+                <select id="difficulty">
+                    <option value="easy">😀 Лёгкая</option>
+                    <option value="medium">😐 Средняя</option>
+                    <option value="hard">😈 Сложная</option>
+                </select>
+            </div>
             <button id="placementReadyBtn" disabled>✅ Готов</button>
         </div>
         <div id="placement-status" class="status"></div>
@@ -62,15 +70,6 @@
         </div>
 
         <div class="controls">
-            <div class="difficulty-select hidden" id="difficulty-container">
-                <label>🤖 Сложность AI: </label>
-                <select id="difficulty">
-                    <option value="random">🎲 Случайная</option>
-                    <option value="smart">🧠 Умная</option>
-                    <option value="dense">📦 Плотная</option>
-                    <option value="edge">📐 По краям</option>
-                </select>
-            </div>
             <button id="new-game">🔄 Новая игра</button>
         </div>
 

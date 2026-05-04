@@ -234,3 +234,74 @@ export function edgePlacement() {
     const board = createEmptyPlacementBoard();
     return new EdgePlacement(board).run();
 }
+
+// Смешанная расстановка: крупные корабли по краям, одиночные — случайно
+export function mixedPlacement() {
+    const board = createEmptyPlacementBoard();
+    
+    // 1. Крупные корабли (4, 3, 2 палубы) — по краям
+    const edgeSizes = [4, 3, 3, 2, 2, 2]; // 1x4, 2x3, 3x2
+    
+    for (const size of edgeSizes) {
+        let placed = false;
+        let attempts = 0;
+        while (!placed && attempts < 1000) {
+            // Выбираем сторону: 0=верх, 1=низ, 2=лево, 3=право
+            const edge = Math.floor(Math.random() * 4);
+            let x, y;
+            
+            if (edge === 0) { // верх
+                x = 0;
+                y = Math.floor(Math.random() * (BOARD_SIZE - size + 1));
+            } else if (edge === 1) { // низ
+                x = BOARD_SIZE - 1;
+                y = Math.floor(Math.random() * (BOARD_SIZE - size + 1));
+            } else if (edge === 2) { // лево
+                y = 0;
+                x = Math.floor(Math.random() * (BOARD_SIZE - size + 1));
+            } else { // право
+                y = BOARD_SIZE - 1;
+                x = Math.floor(Math.random() * (BOARD_SIZE - size + 1));
+            }
+            
+            const orientation = Math.random() < 0.5 ? 'horizontal' : 'vertical';
+            if (canPlaceShip(board, x, y, size, orientation)) {
+                placeShip(board, x, y, size, orientation);
+                placed = true;
+            }
+            attempts++;
+        }
+        if (!placed) {
+            // Если не получилось, пробуем заново
+            return mixedPlacement();
+        }
+    }
+    
+    // 2. Одиночные корабли — по всему полю, но с проверкой изоляции
+    for (let i = 0; i < 4; i++) {
+        let placed = false;
+        let attempts = 0;
+        while (!placed && attempts < 500) {
+            const x = Math.floor(Math.random() * BOARD_SIZE);
+            const y = Math.floor(Math.random() * BOARD_SIZE);
+            // Для одиночного корабля ориентация не важна
+            if (canPlaceShip(board, x, y, 1, 'horizontal')) {
+                placeShip(board, x, y, 1, 'horizontal');
+                placed = true;
+            }
+            attempts++;
+        }
+        if (!placed) {
+            // Если одиночный не влез, пробуем заново всю расстановку
+            return mixedPlacement();
+        }
+    }
+    
+    // Проверка: все ли 20 клеток расставлены
+    const totalCells = board.flat().filter(cell => cell === CELL_SHIP).length;
+    if (totalCells !== 20) {
+        return mixedPlacement();
+    }
+    
+    return board;
+}

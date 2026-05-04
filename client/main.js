@@ -8,6 +8,9 @@ let currentGame = null;
 export function startPvE() {
     logger.info('Main', '🚀 Запуск PvE режима');
     
+    // Показываем выбор сложности
+    ui.showDifficulty();
+    
     import('./pve/PvECore.js').then(module => {
         const { startPvEGame } = module;
         startPvEGame({
@@ -22,7 +25,11 @@ export function startPvE() {
 export function startPvP() {
     logger.info('Main', '🚀 Запуск PvP режима');
     
+    // Скрываем выбор сложности
+    ui.hideDifficulty();
+    
     const socket = io();
+    window.activeSocket = socket;
     setLoggerSocket(socket);
     
     const dom = {
@@ -95,11 +102,12 @@ export function startPvP() {
 const urlParams = new URLSearchParams(window.location.search);
 const isJoin = urlParams.has('join');
 
+// Всегда инициализируем кнопки и показываем стартовый экран
+ui.initButtons();
+ui.showScreen('startScreen');
+logger.info('Main', 'Приложение загружено, ожидание выбора режима');
+
 if (isJoin) {
     logger.info('Main', '🔗 Обнаружен параметр ?join — запускаем PvP автоматически');
     startPvP();
-} else {
-    ui.initButtons();
-    ui.showScreen('startScreen');
-    logger.info('Main', 'Приложение загружено, ожидание выбора режима');
 }

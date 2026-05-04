@@ -6,15 +6,16 @@ import * as ui from '../ui.js';
 import { renderBoard } from '../core/render.js';
 import { makeAttack, checkWin, BOARD_SIZE, CELL_SHIP, CELL_HIT, CELL_MISS } from '../core/attack.js';
 import { initPlacementUI, showPlacementScreen, hidePlacementScreen } from '../placement/placementUI.js';
-import { randomPlacement, smartPlacement, densePlacement, edgePlacement } from '../placement/placementAI.js';
+import { randomPlacement, smartPlacement, densePlacement, edgePlacement, mixedPlacement } from '../placement/placementAI.js';
 import { createEmptyBoard } from '../core/board.js';
+import { createAI } from './PvEAI.js';
 
 // Состояние PvE игры
 let playerBoard = [];
 let enemyBoard = [];
-let currentTurn = 'player'; // 'player' или 'ai'
+let currentTurn = 'player';
 let gameActive = false;
-let aiDifficulty = 'random';
+let ai = null;
 
 // DOM элементы
 let playerBoardEl = null;
@@ -30,11 +31,6 @@ export function startPvEGame(dom) {
     playerBoardEl = dom.playerBoardEl;
     enemyBoardEl = dom.enemyBoardEl;
     
-    // Получаем сложность из UI
-    const difficultySelect = document.getElementById('difficulty');
-    aiDifficulty = difficultySelect ? difficultySelect.value : 'random';
-    logger.info('PvECore', 'Сложность AI', { aiDifficulty });
-    
     // Инициализируем UI расстановки (один раз)
     initPlacementUI();
     
@@ -49,22 +45,35 @@ function onPlacementComplete(placementBoard) {
     // Сохраняем поле игрока
     playerBoard = placementBoard.map(row => [...row]);
     
-    // Генерируем поле AI в зависимости от сложности
+    // === ПОЛУЧАЕМ СЛОЖНОСТЬ И СОЗДАЁМ AI ===
+    const difficultySelect = document.getElementById('difficulty');
+    const aiDifficulty = difficultySelect ? difficultySelect.value : 'easy';
+    logger.info('PvECore', 'Сложность AI', { aiDifficulty });
+    
+    // Создаём AI объект
+    ai = createAI(aiDifficulty);
+    
+    // Генерируем поле AI в зависимости от уровня сложности
     switch (aiDifficulty) {
-        case 'smart':
+        case 'easy':
+            enemyBoard = randomPlacement();
+            break;
+        case 'medium':
             enemyBoard = smartPlacement();
             break;
-        case 'dense':
-            enemyBoard = densePlacement();
-            break;
-        case 'edge':
-            enemyBoard = edgePlacement();
+        case 'hard':
+            enemyBoard = mixedPlacement();
             break;
         default:
             enemyBoard = randomPlacement();
     }
     
     logger.debug('PvECore', 'AI поле сгенерировано');
+    
+    // Сбрасываем состояние AI перед игрой
+    if (ai && ai.reset) {
+        ai.reset();
+    }
     
     // Скрываем экран расстановки, показываем игровой
     hidePlacementScreen();
@@ -88,7 +97,6 @@ function onPlacementComplete(placementBoard) {
 function attachClickHandler() {
     if (!enemyBoardEl) return;
     
-    // Удаляем старый обработчик, если есть
     if (clickHandler) {
         enemyBoardEl.removeEventListener('click', clickHandler);
     }
@@ -126,11 +134,16 @@ function playerAttack(x, y) {
     
     logger.info('PvECore', 'Атака игрока', { x, y });
     
-    const { result } = makeAttack(enemyBoard, x, y);
+    const { result, sunk } = makeAttack(enemyBoard, x, y);
     renderBoard(enemyBoardEl, enemyBoard, true);
     
     if (result === 'hit') {
-        ui.updateStatus('Попадание! Ещё ход');
+        if (sunk) {
+            ui.updateStatus('Корабль уничтожен! Ещё ход');
+            logger.info('PvECore', 'Игрок уничтожил корабль AI', { x, y });
+        } else {
+            ui.updateStatus('Попадание! Ещё ход');
+        }
         
         if (checkWin(enemyBoard)) {
             gameActive = false;
@@ -161,30 +174,24 @@ function aiAttack() {
     
     logger.debug('PvECore', 'AI атака');
     
-    // Находим все непрострелянные клетки
-    const available = [];
-    for (let i = 0; i < BOARD_SIZE; i++) {
-        for (let j = 0; j < BOARD_SIZE; j++) {
-            const val = playerBoard[i][j];
-            if (val !== CELL_HIT && val !== CELL_MISS) {
-                available.push([i, j]);
-            }
-        }
-    }
+    const move = ai.makeMove();
+    if (!move) return;
     
-    if (available.length === 0) return;
-    
-    // Случайный выбор (позже можно заменить на умный AI)
-    const randomIndex = Math.floor(Math.random() * available.length);
-    const [x, y] = available[randomIndex];
-    
+    const { x, y } = move;
     logger.info('PvECore', 'AI атакует', { x, y });
     
-    const { result } = makeAttack(playerBoard, x, y);
+    const { result, sunk } = makeAttack(playerBoard, x, y);
     renderBoard(playerBoardEl, playerBoard, false);
     
+    ai.onResult(result === 'hit', sunk, x, y);
+    
     if (result === 'hit') {
-        ui.updateStatus('AI попал! Ещё ход AI');
+        if (sunk) {
+            ui.updateStatus('AI уничтожил ваш корабль! Ещё ход AI');
+            logger.info('PvECore', 'AI уничтожил корабль игрока', { x, y });
+        } else {
+            ui.updateStatus('AI попал! Ещё ход AI');
+        }
         
         if (checkWin(playerBoard)) {
             gameActive = false;
@@ -193,7 +200,6 @@ function aiAttack() {
             detachClickHandler();
             return;
         }
-        // Дополнительный ход AI
         setTimeout(() => aiAttack(), 500);
         return;
     }
@@ -205,7 +211,6 @@ function aiAttack() {
     }
 }
 
-// Открепление обработчика кликов
 function detachClickHandler() {
     if (clickHandler && enemyBoardEl) {
         enemyBoardEl.removeEventListener('click', clickHandler);

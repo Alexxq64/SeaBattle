@@ -104,20 +104,26 @@ export function createPvPController(socket, dom) {
         
         if (!gameActive) return;
         
-        const { result } = makeAttack(playerBoard, data.x, data.y);
-        logger.info('PvPCore', 'Результат выстрела', { result });
+        const { result, sunk } = makeAttack(playerBoard, data.x, data.y);
+        logger.info('PvPCore', 'Результат выстрела', { result, sunk });
         
         socket.emit('result', {
             x: data.x,
             y: data.y,
             result: result,
+            sunk: sunk || false,
             shooter: data.shooter
         });
         
         renderBoard(playerBoardEl, playerBoard, false);
         
         if (result === 'hit') {
-            ui.updateStatus('Противник попал!');
+            if (sunk) {
+                ui.updateStatus('Противник уничтожил ваш корабль!');
+                logger.info('PvPCore', 'Противник уничтожил корабль', { x, y });
+            } else {
+                ui.updateStatus('Противник попал!');
+            }
             if (checkWin(playerBoard)) {
                 gameActive = false;
                 ui.updateStatus('💀 ПОРАЖЕНИЕ! 💀');
@@ -147,6 +153,26 @@ export function createPvPController(socket, dom) {
         }
     });
     
+    // Обработчик сброса игры (Новая игра)
+    socket.on('resetGame', () => {
+        logger.info('PvPCore', 'Получен resetGame, сброс состояния');
+        
+        // Сбрасываем игровое состояние
+        gameActive = false;
+        playerBoard = [];
+        enemyBoard = [];
+        currentTurn = null;
+        
+        // Удаляем обработчик кликов
+        if (clickHandler && enemyBoardEl) {
+            enemyBoardEl.removeEventListener('click', clickHandler);
+            clickHandler = null;
+        }
+        
+        // Показываем экран расстановки заново
+        startPlacement();
+    });
+    
     function handleStateUpdate(data) {
         const iAmShooter = (data.shooter === myRole);
         
@@ -160,7 +186,12 @@ export function createPvPController(socket, dom) {
             renderBoard(enemyBoardEl, enemyBoard, true);
             
             if (data.result === 'hit') {
-                ui.updateStatus('Попадание!');
+                if (data.sunk) {
+                    ui.updateStatus('Корабль уничтожен!');
+                    logger.info('PvPCore', 'Игрок уничтожил корабль противника', { x: data.x, y: data.y });
+                } else {
+                    ui.updateStatus('Попадание!');
+                }
                 // Подсчёт попаданий вместо checkWin
                 const hitCount = enemyBoard.flat().filter(cell => cell === CELL_HIT).length;
                 if (hitCount === TOTAL_SHIP_CELLS) {
@@ -174,7 +205,12 @@ export function createPvPController(socket, dom) {
             renderBoard(playerBoardEl, playerBoard, false);
             
             if (data.result === 'hit') {
-                ui.updateStatus('Противник попал!');
+                if (data.sunk) {
+                    ui.updateStatus('Противник уничтожил ваш корабль!');
+                    logger.info('PvPCore', 'Противник уничтожил ваш корабль', { x: data.x, y: data.y });
+                } else {
+                    ui.updateStatus('Противник попал!');
+                }
                 if (checkWin(playerBoard)) {
                     gameActive = false;
                     ui.updateStatus('💀 ПОРАЖЕНИЕ! 💀');

@@ -111,11 +111,17 @@ export function initButtons() {
         };
     }
     
-    // Кнопка "Новая игра" (пока просто перезагрузка)
+    // Кнопка "Новая игра"
     const newGameBtn = document.getElementById('new-game');
     if (newGameBtn) {
         newGameBtn.onclick = () => {
-            logger.info('UI', 'Новая игра - возврат в стартовое меню');
+            logger.info('UI', 'Новая игра - отправляем resetGame на сервер');
+            
+            // Если есть активный сокет (PvP режим), отправляем сброс
+            if (window.activeSocket && window.activeSocket.connected) {
+                window.activeSocket.emit('resetGame');
+            }
+            
             showScreen('startScreen');
         };
     }

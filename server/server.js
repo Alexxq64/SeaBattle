@@ -77,11 +77,12 @@ io.on('connection', (socket) => {
             x: data.x,
             y: data.y,
             result: data.result,
+            sunk: data.sunk || false,
             nextTurn: currentTurn,
             shooter: data.shooter
         };
         io.emit('stateUpdate', stateUpdate);
-        console.log(`Результат: ${data.result}, следующий ход: ${currentTurn}`);
+        console.log(`Результат: ${data.result}, sunk: ${data.sunk || false}, следующий ход: ${currentTurn}`);
     });
 
     socket.on('placementReady', () => {
@@ -89,19 +90,31 @@ io.on('connection', (socket) => {
         readyCount = Object.keys(readyPlayers).length;
         console.log(`Игрок ${socket.id} готов. Всего готовых: ${readyCount}`);
         
-        // Если второй игрок (player2) готов, говорим первому начинать расстановку
         if (readyCount === 1 && socket.id === player2) {
             console.log(`Отправляем startPlacement игроку ${player1}`);
             io.to(player1).emit('startPlacement');
         }
         
-        // Если оба готовы, начинаем игру
         if (readyCount === 2) {
             console.log('Оба игрока готовы, отправляем bothReady');
             io.emit('bothReady');
             readyPlayers = {};
             readyCount = 0;
         }
+    });
+
+    // Обработчик сброса игры (Новая игра)
+    socket.on('resetGame', () => {
+        console.log(`Сброс игры от ${socket.id}`);
+        
+        // Сбрасываем состояние
+        currentTurn = 'player1';
+        readyPlayers = {};
+        readyCount = 0;
+        
+        // Отправляем обоим игрокам команду на сброс
+        if (player1) io.to(player1).emit('resetGame');
+        if (player2) io.to(player2).emit('resetGame');
     });
 
     socket.on('disconnect', () => {
