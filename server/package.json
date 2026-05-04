@@ -1,9 +1,10 @@
 {
   "name": "battleship-server",
   "version": "1.0.0",
-  "main": "server.js",
+  "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.cjs",
+    "benchmark": "node ai-benchmark/runBenchmark.js"
   },
   "dependencies": {
     "express": "^4.18.2",

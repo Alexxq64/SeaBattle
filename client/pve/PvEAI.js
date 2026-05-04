@@ -73,7 +73,6 @@ function createMediumAI() {
         if (lastHit) {
             const [hx, hy] = lastHit;
             const neighbors = getCrossNeighbors(hx, hy);
-            
             const validNeighbors = neighbors.filter(([nx, ny]) => {
                 return availableCells.some(([ax, ay]) => ax === nx && ay === ny);
             });
@@ -86,7 +85,6 @@ function createMediumAI() {
                 logger.debug('PvEAI', 'Medium выстрел (крест от попадания)', { x, y });
                 return { x, y };
             }
-            
             lastHit = null;
         }
         
@@ -118,134 +116,230 @@ function createMediumAI() {
 
 // ==================== HARD ====================
 function createHardAI() {
-    logger.info('PvEAI', 'Создание Hard AI');
-    
-    let availableCells = [];
+    logger.info('PvEAI', 'Создание Hard AI (final)');
+
+    let shotCells = new Set();
+    let hitCells = new Set();
     let hits = [];
-    let direction = null;
-    
-    function initAvailableCells() {
-        availableCells = [];
-        for (let i = 0; i < BOARD_SIZE; i++) {
-            for (let j = 0; j < BOARD_SIZE; j++) {
-                availableCells.push([i, j]);
-            }
-        }
+    let sunkCells = new Set();
+
+    const boardSize = BOARD_SIZE;
+    const shipLengths = [4, 3, 3, 2, 2, 2];
+
+    function initState() {
+        shotCells.clear();
+        hitCells.clear();
         hits = [];
-        direction = null;
+        sunkCells.clear();
     }
-    
-    initAvailableCells();
-    
-    function getCrossNeighbors(x, y) {
-        const neighbors = [];
-        if (x > 0) neighbors.push([x - 1, y]);
-        if (x < BOARD_SIZE - 1) neighbors.push([x + 1, y]);
-        if (y > 0) neighbors.push([x, y - 1]);
-        if (y < BOARD_SIZE - 1) neighbors.push([x, y + 1]);
-        return neighbors;
+
+    initState();
+
+    const key = (x, y) => `${x},${y}`;
+
+    const isUnknown = (x, y) =>
+        !shotCells.has(key(x, y));
+
+    const markShot = (x, y) => shotCells.add(key(x, y));
+    const markHit = (x, y) => {
+        hitCells.add(key(x, y));
+        markShot(x, y);
+    };
+    const markMiss = (x, y) => markShot(x, y);
+
+    function addHit(x, y) {
+        if (!hits.some(([hx, hy]) => hx === x && hy === y)) {
+            hits.push([x, y]);
+        }
     }
-    
-    function getLineInDirection() {
-        if (hits.length === 0) return [];
-        
+
+    function getNeighbors(x, y) {
+        const res = [];
+        if (x > 0) res.push([x - 1, y]);
+        if (x < boardSize - 1) res.push([x + 1, y]);
+        if (y > 0) res.push([x, y - 1]);
+        if (y < boardSize - 1) res.push([x, y + 1]);
+        return res;
+    }
+
+    function getLineTargets() {
+        if (hits.length < 2) return [];
+
+        const [x1, y1] = hits[0];
+        const [x2, y2] = hits[1];
+
+        const horizontal = x1 === x2;
         const result = [];
-        if (direction === 'horizontal') {
+
+        if (horizontal) {
+            const x = x1;
             const sorted = [...hits].sort((a, b) => a[1] - b[1]);
             const minY = sorted[0][1];
             const maxY = sorted[sorted.length - 1][1];
-            const y = hits[0][0];
-            
-            if (minY > 0) result.push([y, minY - 1]);
-            if (maxY < BOARD_SIZE - 1) result.push([y, maxY + 1]);
-        } else if (direction === 'vertical') {
+
+            if (minY > 0) result.push([x, minY - 1]);
+            if (maxY < boardSize - 1) result.push([x, maxY + 1]);
+        } else {
+            const y = y1;
             const sorted = [...hits].sort((a, b) => a[0] - b[0]);
             const minX = sorted[0][0];
             const maxX = sorted[sorted.length - 1][0];
-            const x = hits[0][1];
-            
-            if (minX > 0) result.push([minX - 1, x]);
-            if (maxX < BOARD_SIZE - 1) result.push([maxX + 1, x]);
+
+            if (minX > 0) result.push([minX - 1, y]);
+            if (maxX < boardSize - 1) result.push([maxX + 1, y]);
         }
-        
+
         return result;
     }
-    
-    function getDirectionFromHits() {
-        if (hits.length < 2) return null;
-        const [x1, y1] = hits[0];
-        const [x2, y2] = hits[1];
-        if (x1 === x2) return 'horizontal';
-        if (y1 === y2) return 'vertical';
-        return null;
-    }
-    
-    function makeMove() {
-        if (hits.length > 0) {
-            if (!direction && hits.length >= 2) {
-                direction = getDirectionFromHits();
-            }
-            
-            if (direction) {
-                const candidates = getLineInDirection();
-                const validCandidates = candidates.filter(([cx, cy]) => {
-                    return availableCells.some(([ax, ay]) => ax === cx && ay === cy);
-                });
-                
-                if (validCandidates.length > 0) {
-                    const [x, y] = validCandidates[0];
-                    const idx = availableCells.findIndex(([ax, ay]) => ax === x && ay === y);
-                    if (idx !== -1) availableCells.splice(idx, 1);
-                    logger.debug('PvEAI', 'Hard выстрел (добивание по линии)', { x, y, direction });
-                    return { x, y };
+
+    function buildMap() {
+        const map = Array.from({ length: boardSize }, () =>
+            Array(boardSize).fill(0)
+        );
+
+        for (const len of shipLengths) {
+            // horizontal
+            for (let i = 0; i < boardSize; i++) {
+                for (let j = 0; j <= boardSize - len; j++) {
+                    let ok = true;
+
+                    for (let k = 0; k < len; k++) {
+                        const x = i;
+                        const y = j + k;
+
+                        if (sunkCells.has(key(x, y))) {
+                            ok = false;
+                            break;
+                        }
+                        if (shotCells.has(key(x, y)) && !hitCells.has(key(x, y))) {
+                            ok = false;
+                            break;
+                        }
+                    }
+
+                    if (ok) {
+                        for (let k = 0; k < len; k++) {
+                            map[i][j + k]++;
+                        }
+                    }
                 }
             }
-            
-            if (!direction && hits.length === 1) {
-                const [hx, hy] = hits[0];
-                const neighbors = getCrossNeighbors(hx, hy);
-                const validNeighbors = neighbors.filter(([nx, ny]) => {
-                    return availableCells.some(([ax, ay]) => ax === nx && ay === ny);
-                });
-                
-                if (validNeighbors.length > 0) {
-                    const randomIndex = Math.floor(Math.random() * validNeighbors.length);
-                    const [x, y] = validNeighbors[randomIndex];
-                    const idx = availableCells.findIndex(([ax, ay]) => ax === x && ay === y);
-                    if (idx !== -1) availableCells.splice(idx, 1);
-                    logger.debug('PvEAI', 'Hard выстрел (крест от попадания)', { x, y });
-                    return { x, y };
+
+            // vertical
+            for (let i = 0; i <= boardSize - len; i++) {
+                for (let j = 0; j < boardSize; j++) {
+                    let ok = true;
+
+                    for (let k = 0; k < len; k++) {
+                        const x = i + k;
+                        const y = j;
+
+                        if (sunkCells.has(key(x, y))) {
+                            ok = false;
+                            break;
+                        }
+                        if (shotCells.has(key(x, y)) && !hitCells.has(key(x, y))) {
+                            ok = false;
+                            break;
+                        }
+                    }
+
+                    if (ok) {
+                        for (let k = 0; k < len; k++) {
+                            map[i + k][j]++;
+                        }
+                    }
                 }
             }
-            
-            hits = [];
-            direction = null;
         }
-        
-        if (availableCells.length === 0) return null;
-        const randomIndex = Math.floor(Math.random() * availableCells.length);
-        const [x, y] = availableCells[randomIndex];
-        availableCells.splice(randomIndex, 1);
-        logger.debug('PvEAI', 'Hard выстрел (случайный поиск)', { x, y });
+
+        // bonus around hits
+        for (const [x, y] of hits) {
+            map[x][y] += 20;
+            for (const [nx, ny] of getNeighbors(x, y)) {
+                if (isUnknown(nx, ny)) {
+                    map[nx][ny] += 10;
+                }
+            }
+        }
+
+        return map;
+    }
+
+    function makeMove() {
+
+        // 🎯 TARGET MODE
+        if (hits.length > 0) {
+
+            if (hits.length >= 2) {
+                const line = getLineTargets()
+                    .filter(([x, y]) => isUnknown(x, y));
+
+                if (line.length > 0) {
+                    const [x, y] = line[0];
+                    markShot(x, y);
+                    return { x, y };
+                }
+            }
+
+            const [x, y] = hits[hits.length - 1];
+            const neigh = getNeighbors(x, y)
+                .filter(([nx, ny]) => isUnknown(nx, ny));
+
+            if (neigh.length > 0) {
+                const [x2, y2] = neigh[0];
+                markShot(x2, y2);
+                return { x: x2, y: y2 };
+            }
+
+            hits = [];
+        }
+
+        // 🔍 SEARCH MODE
+        const map = buildMap();
+
+        let best = null;
+        let bestScore = -1;
+
+        for (let i = 0; i < boardSize; i++) {
+            for (let j = 0; j < boardSize; j++) {
+                if (!isUnknown(i, j)) continue;
+
+                if (map[i][j] > bestScore) {
+                    bestScore = map[i][j];
+                    best = [i, j];
+                }
+            }
+        }
+
+        const [x, y] = best;
+        markShot(x, y);
         return { x, y };
     }
-    
-    function onResult(hit, sunk, x, y) {
-        if (hit && !sunk) {
-            hits.push([x, y]);
-            logger.debug('PvEAI', 'Hard добавлено попадание', { x, y, hitsCount: hits.length });
+
+    function onResult(hit, sunk, x, y, sunkCellsArray) {
+        if (hit) {
+            markHit(x, y);
+            addHit(x, y);
+        } else {
+            markMiss(x, y);
         }
+
         if (sunk) {
+            if (sunkCellsArray) {
+                for (const [sx, sy] of sunkCellsArray) {
+                    sunkCells.add(key(sx, sy));
+                }
+            }
             hits = [];
-            direction = null;
-            logger.debug('PvEAI', 'Hard корабль уничтожен, сброс состояния');
+            hitCells.clear(); // сбрасываем только локальный target state
         }
     }
-    
+
     function reset() {
-        initAvailableCells();
+        initState();
     }
-    
+
     return { makeMove, onResult, reset };
 }
 

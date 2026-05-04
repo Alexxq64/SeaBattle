@@ -1,16 +1,15 @@
-// server.js
+// server.cjs
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
+const os = require('os');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: { origin: "*" }
 });
-
-const os = require('os');
 
 app.use(express.static(path.join(__dirname, '../client')));
 
@@ -42,7 +41,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Назначение игроков
     if (player1 === null) {
         player1 = socket.id;
         const ip = getLocalIP();
@@ -103,16 +101,13 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Обработчик сброса игры (Новая игра)
     socket.on('resetGame', () => {
         console.log(`Сброс игры от ${socket.id}`);
         
-        // Сбрасываем состояние
         currentTurn = 'player1';
         readyPlayers = {};
         readyCount = 0;
         
-        // Отправляем обоим игрокам команду на сброс
         if (player1) io.to(player1).emit('resetGame');
         if (player2) io.to(player2).emit('resetGame');
     });
