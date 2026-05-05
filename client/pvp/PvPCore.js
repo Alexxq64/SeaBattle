@@ -7,6 +7,7 @@ import { renderBoard } from '../core/render.js';
 import { makeAttack, checkWin, CELL_HIT, CELL_MISS, CELL_WOUND, TOTAL_SHIP_CELLS } from '../core/attack.js';
 import { initPlacementUI, showPlacementScreen, hidePlacementScreen } from '../placement/placementUI.js';
 import { sound } from '../sound.js';
+import { animateCell } from '../animation.js';
 
 export function createPvPController(socket, dom) {
     let myRole = null;
@@ -94,6 +95,7 @@ export function createPvPController(socket, dom) {
             }
             
             sound.play('shoot');
+            animateCell(enemyBoardEl, x, y, 'shoot-flash', 200);
             logger.info('PvPCore', 'Атака', { x, y, myRole });
             socket.emit('shoot', { x, y, shooter: myRole });
         };
@@ -120,8 +122,10 @@ export function createPvPController(socket, dom) {
         renderBoard(playerBoardEl, playerBoard, false);
         
         if (result === 'hit') {
+            animateCell(playerBoardEl, data.x, data.y, 'hit-pulse', 300);
             sound.play('hit');
             if (sunk) {
+                animateCell(playerBoardEl, data.x, data.y, 'sunk-effect', 400);
                 sound.play('sunk');
                 ui.updateStatus('Противник уничтожил ваш корабль!');
                 logger.info('PvPCore', 'Противник уничтожил корабль', { x, y });
@@ -134,6 +138,7 @@ export function createPvPController(socket, dom) {
                 ui.updateStatus('💀 ПОРАЖЕНИЕ! 💀');
             }
         } else if (result === 'miss') {
+            animateCell(playerBoardEl, data.x, data.y, 'miss-pulse', 200);
             sound.play('miss');
             ui.updateStatus('Противник промахнулся!');
         }
@@ -217,20 +222,25 @@ export function createPvPController(socket, dom) {
                         enemyBoard[cx][cy] = CELL_HIT;
                     }
                     
+                    renderBoard(enemyBoardEl, enemyBoard, true);
+                    animateCell(enemyBoardEl, data.x, data.y, 'sunk-effect', 400);
                     sound.play('sunk');
                     ui.updateStatus('Корабль уничтожен!');
                     logger.info('PvPCore', 'Игрок уничтожил корабль противника', { x: data.x, y: data.y });
                 } else {
                     enemyBoard[data.x][data.y] = CELL_WOUND;
+                    renderBoard(enemyBoardEl, enemyBoard, true);
+                    animateCell(enemyBoardEl, data.x, data.y, 'hit-pulse', 300);
                     sound.play('hit');
                     ui.updateStatus('Попадание!');
                 }
             } else {
                 enemyBoard[data.x][data.y] = CELL_MISS;
+                renderBoard(enemyBoardEl, enemyBoard, true);
+                animateCell(enemyBoardEl, data.x, data.y, 'miss-pulse', 200);
                 sound.play('miss');
                 ui.updateStatus('Промах! Ход противника');
             }
-            renderBoard(enemyBoardEl, enemyBoard, true);
             
             // Подсчёт попаданий учитывает CELL_HIT и CELL_WOUND
             const hitCount = enemyBoard.flat().filter(cell => cell === CELL_HIT || cell === CELL_WOUND).length;
@@ -244,7 +254,9 @@ export function createPvPController(socket, dom) {
             renderBoard(playerBoardEl, playerBoard, false);
             
             if (data.result === 'hit') {
+                animateCell(playerBoardEl, data.x, data.y, 'hit-pulse', 300);
                 if (data.sunk) {
+                    animateCell(playerBoardEl, data.x, data.y, 'sunk-effect', 400);
                     ui.updateStatus('Противник уничтожил ваш корабль!');
                     logger.info('PvPCore', 'Противник уничтожил ваш корабль', { x: data.x, y: data.y });
                 } else {
@@ -256,6 +268,7 @@ export function createPvPController(socket, dom) {
                     ui.updateStatus('💀 ПОРАЖЕНИЕ! 💀');
                 }
             } else {
+                animateCell(playerBoardEl, data.x, data.y, 'miss-pulse', 200);
                 ui.updateStatus('Противник промахнулся! Ваш ход');
             }
         }

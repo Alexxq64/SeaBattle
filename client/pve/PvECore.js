@@ -10,6 +10,7 @@ import { randomPlacement, smartPlacement, densePlacement, edgePlacement, mixedPl
 import { createEmptyBoard } from '../core/board.js';
 import { createAI } from './PvEAI.js';
 import { sound } from '../sound.js';
+import { animateCell } from '../animation.js';
 
 // Состояние PvE игры
 let playerBoard = [];
@@ -136,13 +137,16 @@ function playerAttack(x, y) {
     logger.info('PvECore', 'Атака игрока', { x, y });
     
     sound.play('shoot');
+    animateCell(enemyBoardEl, x, y, 'shoot-flash', 200);
     
     const { result, sunk } = makeAttack(enemyBoard, x, y);
     renderBoard(enemyBoardEl, enemyBoard, true);
     
     if (result === 'hit') {
+        animateCell(enemyBoardEl, x, y, 'hit-pulse', 300);
         sound.play('hit');
         if (sunk) {
+            animateCell(enemyBoardEl, x, y, 'sunk-effect', 400);
             sound.play('sunk');
             ui.updateStatus('Корабль уничтожен! Ещё ход');
             logger.info('PvECore', 'Игрок уничтожил корабль AI', { x, y });
@@ -164,6 +168,7 @@ function playerAttack(x, y) {
     }
     
     if (result === 'miss') {
+        animateCell(enemyBoardEl, x, y, 'miss-pulse', 200);
         sound.play('miss');
         ui.updateStatus('Промах! Ход AI');
         currentTurn = 'ai';
@@ -190,6 +195,7 @@ function aiAttack() {
     logger.info('PvECore', 'AI атакует', { x, y });
     
     sound.play('shoot');
+    animateCell(playerBoardEl, x, y, 'shoot-flash', 200);
     
     const { result, sunk } = makeAttack(playerBoard, x, y);
     renderBoard(playerBoardEl, playerBoard, false);
@@ -197,8 +203,10 @@ function aiAttack() {
     ai.onResult(result === 'hit', sunk, x, y);
     
     if (result === 'hit') {
+        animateCell(playerBoardEl, x, y, 'hit-pulse', 300);
         sound.play('hit');
         if (sunk) {
+            animateCell(playerBoardEl, x, y, 'sunk-effect', 400);
             sound.play('sunk');
             ui.updateStatus('AI уничтожил ваш корабль! Ещё ход AI');
             logger.info('PvECore', 'AI уничтожил корабль игрока', { x, y });
@@ -218,6 +226,7 @@ function aiAttack() {
     }
     
     if (result === 'miss') {
+        animateCell(playerBoardEl, x, y, 'miss-pulse', 200);
         sound.play('miss');
         ui.updateStatus('AI промахнулся! Ваш ход');
         currentTurn = 'player';
