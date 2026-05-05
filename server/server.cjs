@@ -20,10 +20,32 @@ let readyCount = 0;
 let readyPlayers = {};
 
 function getLocalIP() {
-    const nets = os.networkInterfaces();
+    const { execSync } = require('child_process');
+    try {
+        // Получаем IP интерфейса, через который идёт маршрут к шлюзу по умолчанию
+        const output = execSync('route print 0.0.0.0', { encoding: 'utf8' });
+        const lines = output.split('\n');
+        
+        for (const line of lines) {
+            // Ищем строку с 0.0.0.0
+            if (line.includes('0.0.0.0') && !line.includes('224.0.0.0')) {
+                const parts = line.trim().split(/\s+/);
+                // IP интерфейса обычно в 4-й колонке (индекс 3)
+                if (parts.length >= 4) {
+                    const possibleIp = parts[3];
+                    if (possibleIp && /^\d+\.\d+\.\d+\.\d+$/.test(possibleIp) && !possibleIp.startsWith('127.')) {
+                        return possibleIp;
+                    }
+                }
+            }
+        }
+    } catch (e) {}
+    
+    // fallback
+    const nets = require('os').networkInterfaces();
     for (const name of Object.keys(nets)) {
         for (const net of nets[name]) {
-            if (net.family === 'IPv4' && !net.internal) {
+            if (net.family === 'IPv4' && !net.internal && !net.address.startsWith('169.254.')) {
                 return net.address;
             }
         }
@@ -140,6 +162,7 @@ io.on('connection', (socket) => {
 
 const PORT = 3000;
 server.listen(PORT, () => {
+    const ip = getLocalIP();
     console.log(`Сервер запущен на http://localhost:${PORT}`);
-    console.log('Для игры по сети используйте ваш локальный IP');
+    console.log(`Для игры по сети используйте: http://${ip}:${PORT}`);
 });
