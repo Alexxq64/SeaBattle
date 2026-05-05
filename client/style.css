@@ -126,6 +126,10 @@ body {
     position: relative;
 }
 
+.cell.wound {
+    background-color: #ffcc00;
+}
+
 .cell.miss {
     background-color: var(--cell-miss);
 }

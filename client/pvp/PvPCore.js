@@ -4,7 +4,7 @@
 import { logger } from '../logger.js';
 import * as ui from '../ui.js';
 import { renderBoard } from '../core/render.js';
-import { makeAttack, checkWin, CELL_HIT, CELL_MISS, TOTAL_SHIP_CELLS } from '../core/attack.js';
+import { makeAttack, checkWin, CELL_HIT, CELL_MISS, CELL_WOUND, TOTAL_SHIP_CELLS } from '../core/attack.js';
 import { initPlacementUI, showPlacementScreen, hidePlacementScreen } from '../placement/placementUI.js';
 import { sound } from '../sound.js';
 
@@ -88,7 +88,7 @@ export function createPvPController(socket, dom) {
             }
             
             const cellValue = enemyBoard[x][y];
-            if (cellValue === CELL_HIT || cellValue === CELL_MISS) {
+            if (cellValue === CELL_HIT || cellValue === CELL_MISS || cellValue === CELL_WOUND) {
                 ui.updateStatus('Сюда уже стреляли!');
                 return;
             }
@@ -188,30 +188,59 @@ export function createPvPController(socket, dom) {
         }
         
         if (iAmShooter) {
-            enemyBoard[data.x][data.y] = data.result === 'hit' ? CELL_HIT : CELL_MISS;
-            renderBoard(enemyBoardEl, enemyBoard, true);
-            
+            // Стрелявший обновляет поле противника
             if (data.result === 'hit') {
                 if (data.sunk) {
+                    // Сначала отмечаем текущую клетку как раненую
+                    enemyBoard[data.x][data.y] = CELL_WOUND;
+                    
+                    // Найти все связанные CELL_WOUND (включая текущую)
+                    const queue = [[data.x, data.y]];
+                    const visited = new Set();
+                    const shipCells = [];
+                    
+                    while (queue.length > 0) {
+                        const [cx, cy] = queue.shift();
+                        const key = `${cx},${cy}`;
+                        if (visited.has(key)) continue;
+                        visited.add(key);
+                        shipCells.push([cx, cy]);
+                        
+                        if (cx > 0 && enemyBoard[cx-1][cy] === CELL_WOUND) queue.push([cx-1, cy]);
+                        if (cx < 9 && enemyBoard[cx+1][cy] === CELL_WOUND) queue.push([cx+1, cy]);
+                        if (cy > 0 && enemyBoard[cx][cy-1] === CELL_WOUND) queue.push([cx, cy-1]);
+                        if (cy < 9 && enemyBoard[cx][cy+1] === CELL_WOUND) queue.push([cx, cy+1]);
+                    }
+                    
+                    // Перекрашиваем все клетки корабля в красный
+                    for (const [cx, cy] of shipCells) {
+                        enemyBoard[cx][cy] = CELL_HIT;
+                    }
+                    
                     sound.play('sunk');
                     ui.updateStatus('Корабль уничтожен!');
                     logger.info('PvPCore', 'Игрок уничтожил корабль противника', { x: data.x, y: data.y });
                 } else {
+                    enemyBoard[data.x][data.y] = CELL_WOUND;
                     sound.play('hit');
                     ui.updateStatus('Попадание!');
                 }
-                // Подсчёт попаданий вместо checkWin
-                const hitCount = enemyBoard.flat().filter(cell => cell === CELL_HIT).length;
-                if (hitCount === TOTAL_SHIP_CELLS) {
-                    gameActive = false;
-                    sound.play('win');
-                    ui.updateStatus('🎉 ПОБЕДА! 🎉');
-                }
             } else {
+                enemyBoard[data.x][data.y] = CELL_MISS;
                 sound.play('miss');
                 ui.updateStatus('Промах! Ход противника');
             }
+            renderBoard(enemyBoardEl, enemyBoard, true);
+            
+            // Подсчёт попаданий учитывает CELL_HIT и CELL_WOUND
+            const hitCount = enemyBoard.flat().filter(cell => cell === CELL_HIT || cell === CELL_WOUND).length;
+            if (hitCount === TOTAL_SHIP_CELLS) {
+                gameActive = false;
+                sound.play('win');
+                ui.updateStatus('🎉 ПОБЕДА! 🎉');
+            }
         } else {
+            // Защищающийся обновляет своё поле
             renderBoard(playerBoardEl, playerBoard, false);
             
             if (data.result === 'hit') {

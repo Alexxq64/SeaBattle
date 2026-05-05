@@ -1,5 +1,5 @@
 // core/render.js
-import { BOARD_SIZE, CELL_SHIP, CELL_HIT, CELL_MISS } from './attack.js';
+import { BOARD_SIZE, CELL_SHIP, CELL_HIT, CELL_MISS, CELL_WOUND } from './attack.js';
 
 export function renderBoard(boardElement, board, hideShips = false) {
     if (!boardElement || !board) return;
@@ -17,6 +17,8 @@ export function renderBoard(boardElement, board, hideShips = false) {
                 cell.classList.add('ship');
             } else if (value === CELL_HIT) {
                 cell.classList.add('hit');
+            } else if (value === CELL_WOUND) {
+                cell.classList.add('wound');
             } else if (value === CELL_MISS) {
                 cell.classList.add('miss');
             }

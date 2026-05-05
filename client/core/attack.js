@@ -6,38 +6,52 @@ export const CELL_EMPTY = 0;
 export const CELL_SHIP = 1;
 export const CELL_HIT = 2;
 export const CELL_MISS = 3;
+export const CELL_WOUND = 4;
 
 // Общее количество клеток кораблей (4+3+3+2+2+2+1+1+1+1 = 20)
 export const TOTAL_SHIP_CELLS = 20;
 
-// Проверка, убит ли корабль после попадания
-function isShipSunk(board, x, y) {
-    // Найти все клетки корабля
+// Получить все клетки корабля
+function getShipCells(board, x, y) {
     const cells = [];
     const queue = [[x, y]];
-    const visited = new Set();
+    const visited = Array(10).fill().map(() => Array(10).fill(false));
     const dirs = [[0, 1], [1, 0], [0, -1], [-1, 0]];
     
     while (queue.length > 0) {
         const [cx, cy] = queue.shift();
-        const key = `${cx},${cy}`;
-        if (visited.has(key)) continue;
-        visited.add(key);
-        cells.push([cx, cy]);
+        if (visited[cx][cy]) continue;
+        visited[cx][cy] = true;
         
-        for (const [dx, dy] of dirs) {
-            const nx = cx + dx;
-            const ny = cy + dy;
-            if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE) {
-                if (board[nx][ny] === CELL_SHIP || board[nx][ny] === CELL_HIT) {
-                    if (!visited.has(`${nx},${ny}`)) queue.push([nx, ny]);
+        if (board[cx][cy] === CELL_SHIP || board[cx][cy] === CELL_WOUND) {
+            cells.push([cx, cy]);
+            
+            for (const [dx, dy] of dirs) {
+                const nx = cx + dx;
+                const ny = cy + dy;
+                if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE) {
+                    if (board[nx][ny] === CELL_SHIP || board[nx][ny] === CELL_WOUND) {
+                        if (!visited[nx][ny]) queue.push([nx, ny]);
+                    }
                 }
             }
         }
     }
-    
-    // Если все клетки корабля имеют CELL_HIT — корабль уничтожен
-    return cells.every(([cx, cy]) => board[cx][cy] === CELL_HIT);
+    return cells;
+}
+
+// Проверка, убит ли корабль после попадания
+function isShipSunk(board, x, y) {
+    const shipCells = getShipCells(board, x, y);
+    return shipCells.every(([cx, cy]) => board[cx][cy] === CELL_HIT || board[cx][cy] === CELL_WOUND);
+}
+
+// Перекрасить весь корабль в красный (после уничтожения)
+export function markShipAsSunk(board, x, y) {
+    const shipCells = getShipCells(board, x, y);
+    for (const [cx, cy] of shipCells) {
+        board[cx][cy] = CELL_HIT;
+    }
 }
 
 export function makeAttack(board, x, y) {
@@ -47,13 +61,18 @@ export function makeAttack(board, x, y) {
 
     const target = board[x][y];
 
-    if (target === CELL_HIT || target === CELL_MISS) {
+    if (target === CELL_HIT || target === CELL_MISS || target === CELL_WOUND) {
         return { success: false, result: 'invalid' };
     }
 
     if (target === CELL_SHIP) {
-        board[x][y] = CELL_HIT;
+        board[x][y] = CELL_WOUND;
         const sunk = isShipSunk(board, x, y);
+        
+        if (sunk) {
+            markShipAsSunk(board, x, y);
+        }
+        
         return { success: true, result: 'hit', sunk };
     }
 
