@@ -332,3 +332,34 @@ button {
     50% { transform: scale(1.1); background-color: #ccc; }
     100% { transform: scale(1); background-color: var(--cell-miss); }
 }
+
+/* Мигания вразнобой для потопления */
+.cell.sunk-flash-yellow {
+    animation: flashYellow 0.12s ease-out;
+}
+
+@keyframes flashYellow {
+    0% { transform: scale(1); background-color: #ffcc00; }
+    100% { transform: scale(1); background-color: var(--cell-wound); }
+}
+
+.cell.sunk-flash-red {
+    animation: flashRed 0.12s ease-out;
+}
+
+@keyframes flashRed {
+    0% { transform: scale(1); background-color: #ff6666; }
+    100% { transform: scale(1); background-color: var(--cell-wound); }
+}
+
+/* Одновременный взрыв */
+.cell.sunk-explosion {
+    animation: explosionFinal 0.4s ease-out;
+}
+
+@keyframes explosionFinal {
+    0% { transform: scale(1); background-color: #ffaa00; }
+    30% { transform: scale(1.4); background-color: #ff4400; }
+    70% { transform: scale(1.2); background-color: #cc2200; }
+    100% { transform: scale(1); background-color: var(--cell-hit); }
+}

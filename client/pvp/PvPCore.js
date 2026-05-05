@@ -4,10 +4,10 @@
 import { logger } from '../logger.js';
 import * as ui from '../ui.js';
 import { renderBoard } from '../core/render.js';
-import { makeAttack, checkWin, CELL_HIT, CELL_MISS, CELL_WOUND, TOTAL_SHIP_CELLS } from '../core/attack.js';
+import { makeAttack, checkWin, CELL_SHIP, CELL_HIT, CELL_MISS, CELL_WOUND, TOTAL_SHIP_CELLS, getShipCells } from '../core/attack.js';
 import { initPlacementUI, showPlacementScreen, hidePlacementScreen } from '../placement/placementUI.js';
 import { sound } from '../sound.js';
-import { animateCell } from '../animation.js';
+import { animateCell, animateSinkingRandom } from '../animation.js';
 
 export function createPvPController(socket, dom) {
     let myRole = null;
@@ -82,7 +82,6 @@ export function createPvPController(socket, dom) {
             
             if (!gameActive) return;
             
-            // Проверка хода
             if (currentTurn !== myRole) {
                 ui.updateStatus('Сейчас не ваш ход!');
                 return;
@@ -108,6 +107,12 @@ export function createPvPController(socket, dom) {
         
         if (!gameActive) return;
         
+        // ДОБАВЛЕНО: получаем клетки корабля ДО атаки
+        let shipCells = [];
+        if (playerBoard[data.x][data.y] === CELL_SHIP) {
+            shipCells = getShipCells(playerBoard, data.x, data.y);
+        }
+        
         const { result, sunk } = makeAttack(playerBoard, data.x, data.y);
         logger.info('PvPCore', 'Результат выстрела', { result, sunk });
         
@@ -122,14 +127,19 @@ export function createPvPController(socket, dom) {
         renderBoard(playerBoardEl, playerBoard, false);
         
         if (result === 'hit') {
-            animateCell(playerBoardEl, data.x, data.y, 'hit-pulse', 300);
-            sound.play('hit');
             if (sunk) {
-                animateCell(playerBoardEl, data.x, data.y, 'sunk-effect', 400);
+                // ДОБАВЛЕНО: анимация потопления на своём поле
+                if (shipCells.length > 0) {
+                    animateSinkingRandom(playerBoardEl, shipCells);
+                } else {
+                    animateCell(playerBoardEl, data.x, data.y, 'sunk-effect', 400);
+                }
                 sound.play('sunk');
                 ui.updateStatus('Противник уничтожил ваш корабль!');
                 logger.info('PvPCore', 'Противник уничтожил корабль', { x, y });
             } else {
+                animateCell(playerBoardEl, data.x, data.y, 'hit-pulse', 300);
+                sound.play('hit');
                 ui.updateStatus('Противник попал!');
             }
             if (checkWin(playerBoard)) {
@@ -164,42 +174,34 @@ export function createPvPController(socket, dom) {
         }
     });
     
-    // Обработчик сброса игры (Новая игра)
     socket.on('resetGame', () => {
         logger.info('PvPCore', 'Получен resetGame, сброс состояния');
         
-        // Сбрасываем игровое состояние
         gameActive = false;
         playerBoard = [];
         enemyBoard = [];
         currentTurn = null;
         
-        // Удаляем обработчик кликов
         if (clickHandler && enemyBoardEl) {
             enemyBoardEl.removeEventListener('click', clickHandler);
             clickHandler = null;
         }
         
-        // Показываем экран расстановки заново
         startPlacement();
     });
     
     function handleStateUpdate(data) {
         const iAmShooter = (data.shooter === myRole);
         
-        // Обновляем текущий ход
         if (data.nextTurn) {
             currentTurn = data.nextTurn;
         }
         
         if (iAmShooter) {
-            // Стрелявший обновляет поле противника
             if (data.result === 'hit') {
                 if (data.sunk) {
-                    // Сначала отмечаем текущую клетку как раненую
                     enemyBoard[data.x][data.y] = CELL_WOUND;
                     
-                    // Найти все связанные CELL_WOUND (включая текущую)
                     const queue = [[data.x, data.y]];
                     const visited = new Set();
                     const shipCells = [];
@@ -217,13 +219,12 @@ export function createPvPController(socket, dom) {
                         if (cy < 9 && enemyBoard[cx][cy+1] === CELL_WOUND) queue.push([cx, cy+1]);
                     }
                     
-                    // Перекрашиваем все клетки корабля в красный
                     for (const [cx, cy] of shipCells) {
                         enemyBoard[cx][cy] = CELL_HIT;
                     }
                     
                     renderBoard(enemyBoardEl, enemyBoard, true);
-                    animateCell(enemyBoardEl, data.x, data.y, 'sunk-effect', 400);
+                    animateSinkingRandom(enemyBoardEl, shipCells);
                     sound.play('sunk');
                     ui.updateStatus('Корабль уничтожен!');
                     logger.info('PvPCore', 'Игрок уничтожил корабль противника', { x: data.x, y: data.y });
@@ -242,7 +243,6 @@ export function createPvPController(socket, dom) {
                 ui.updateStatus('Промах! Ход противника');
             }
             
-            // Подсчёт попаданий учитывает CELL_HIT и CELL_WOUND
             const hitCount = enemyBoard.flat().filter(cell => cell === CELL_HIT || cell === CELL_WOUND).length;
             if (hitCount === TOTAL_SHIP_CELLS) {
                 gameActive = false;
@@ -250,16 +250,36 @@ export function createPvPController(socket, dom) {
                 ui.updateStatus('🎉 ПОБЕДА! 🎉');
             }
         } else {
-            // Защищающийся обновляет своё поле
             renderBoard(playerBoardEl, playerBoard, false);
             
             if (data.result === 'hit') {
-                animateCell(playerBoardEl, data.x, data.y, 'hit-pulse', 300);
+                // ДОБАВЛЕНО: анимация потопления на своём поле для защищающегося
                 if (data.sunk) {
-                    animateCell(playerBoardEl, data.x, data.y, 'sunk-effect', 400);
+                    let shipCells = [];
+                    const queue = [[data.x, data.y]];
+                    const visited = new Set();
+                    while (queue.length > 0) {
+                        const [cx, cy] = queue.shift();
+                        const key = `${cx},${cy}`;
+                        if (visited.has(key)) continue;
+                        visited.add(key);
+                        if (playerBoard[cx][cy] === CELL_WOUND || playerBoard[cx][cy] === CELL_HIT) {
+                            shipCells.push([cx, cy]);
+                            if (cx > 0) queue.push([cx-1, cy]);
+                            if (cx < 9) queue.push([cx+1, cy]);
+                            if (cy > 0) queue.push([cx, cy-1]);
+                            if (cy < 9) queue.push([cx, cy+1]);
+                        }
+                    }
+                    if (shipCells.length > 0) {
+                        animateSinkingRandom(playerBoardEl, shipCells);
+                    } else {
+                        animateCell(playerBoardEl, data.x, data.y, 'sunk-effect', 400);
+                    }
                     ui.updateStatus('Противник уничтожил ваш корабль!');
                     logger.info('PvPCore', 'Противник уничтожил ваш корабль', { x: data.x, y: data.y });
                 } else {
+                    animateCell(playerBoardEl, data.x, data.y, 'hit-pulse', 300);
                     ui.updateStatus('Противник попал!');
                 }
                 if (checkWin(playerBoard)) {

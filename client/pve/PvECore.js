@@ -4,13 +4,13 @@
 import { logger } from '../logger.js';
 import * as ui from '../ui.js';
 import { renderBoard } from '../core/render.js';
-import { makeAttack, checkWin, BOARD_SIZE, CELL_SHIP, CELL_HIT, CELL_MISS } from '../core/attack.js';
+import { makeAttack, checkWin, BOARD_SIZE, CELL_SHIP, CELL_HIT, CELL_MISS, getShipCells } from '../core/attack.js';
 import { initPlacementUI, showPlacementScreen, hidePlacementScreen } from '../placement/placementUI.js';
 import { randomPlacement, smartPlacement, densePlacement, edgePlacement, mixedPlacement } from '../placement/placementAI.js';
 import { createEmptyBoard } from '../core/board.js';
 import { createAI } from './PvEAI.js';
 import { sound } from '../sound.js';
-import { animateCell } from '../animation.js';
+import { animateCell, animateSinkingRandom } from '../animation.js';
 
 // Состояние PvE игры
 let playerBoard = [];
@@ -139,6 +139,12 @@ function playerAttack(x, y) {
     sound.play('shoot');
     animateCell(enemyBoardEl, x, y, 'shoot-flash', 200);
     
+    // Получаем клетки корабля ДО атаки
+    let shipCells = [];
+    if (enemyBoard[x][y] === CELL_SHIP) {
+        shipCells = getShipCells(enemyBoard, x, y);
+    }
+    
     const { result, sunk } = makeAttack(enemyBoard, x, y);
     renderBoard(enemyBoardEl, enemyBoard, true);
     
@@ -146,7 +152,11 @@ function playerAttack(x, y) {
         animateCell(enemyBoardEl, x, y, 'hit-pulse', 300);
         sound.play('hit');
         if (sunk) {
-            animateCell(enemyBoardEl, x, y, 'sunk-effect', 400);
+            if (shipCells.length > 0) {
+                animateSinkingRandom(enemyBoardEl, shipCells);
+            } else {
+                animateCell(enemyBoardEl, x, y, 'sunk-effect', 400);
+            }
             sound.play('sunk');
             ui.updateStatus('Корабль уничтожен! Ещё ход');
             logger.info('PvECore', 'Игрок уничтожил корабль AI', { x, y });
@@ -197,6 +207,12 @@ function aiAttack() {
     sound.play('shoot');
     animateCell(playerBoardEl, x, y, 'shoot-flash', 200);
     
+    // Получаем клетки корабля ДО атаки
+    let shipCells = [];
+    if (playerBoard[x][y] === CELL_SHIP) {
+        shipCells = getShipCells(playerBoard, x, y);
+    }
+    
     const { result, sunk } = makeAttack(playerBoard, x, y);
     renderBoard(playerBoardEl, playerBoard, false);
     
@@ -206,7 +222,11 @@ function aiAttack() {
         animateCell(playerBoardEl, x, y, 'hit-pulse', 300);
         sound.play('hit');
         if (sunk) {
-            animateCell(playerBoardEl, x, y, 'sunk-effect', 400);
+            if (shipCells.length > 0) {
+                animateSinkingRandom(playerBoardEl, shipCells);
+            } else {
+                animateCell(playerBoardEl, x, y, 'sunk-effect', 400);
+            }
             sound.play('sunk');
             ui.updateStatus('AI уничтожил ваш корабль! Ещё ход AI');
             logger.info('PvECore', 'AI уничтожил корабль игрока', { x, y });

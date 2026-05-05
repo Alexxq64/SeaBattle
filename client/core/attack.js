@@ -12,7 +12,7 @@ export const CELL_WOUND = 4;
 export const TOTAL_SHIP_CELLS = 20;
 
 // Получить все клетки корабля
-function getShipCells(board, x, y) {
+export function getShipCells(board, x, y) {
     const cells = [];
     const queue = [[x, y]];
     const visited = Array(10).fill().map(() => Array(10).fill(false));
