@@ -201,28 +201,46 @@ function renderPlacementBoard() {
 }
 
 function handleCellClick(x, y) {
+    // Размещение нового корабля из палитры
     if (selectedShip && selectedShip.x === null) {
         const size = selectedShip.size;
         const orientation = selectedShip.orientation;
         
         if (placeShip(placementBoard, x, y, size, orientation)) {
-            selectedShip = null;
+            // Не сбрасываем selectedShip, а обновляем координатами размещённого корабля
+            selectedShip = {
+                size: size,
+                orientation: orientation,
+                x: x,
+                y: y
+            };
             renderPlacementBoard();
             updatePalette();
             checkCompletion();
-            ui.updateStatus('Корабль размещён');
+            ui.updateStatus(`Корабль размещён. Стрелки — перемещение, 0 — поворот, Enter — фиксация`);
+            highlightSelectedShip();
         } else {
             ui.updateStatus('Нельзя разместить корабль здесь');
         }
-    } else if (placementBoard[x][y] === CELL_SHIP) {
-        if (rotateShip(placementBoard, x, y)) {
-            renderPlacementBoard();
-            updatePalette();
-            checkCompletion();
-            ui.updateStatus('Корабль повёрнут');
-        } else {
-            ui.updateStatus('Нельзя повернуть корабль здесь');
+    } 
+    // Выбор уже размещённого корабля для перемещения
+    else if (placementBoard[x][y] === CELL_SHIP) {
+        const cells = findShip(placementBoard, x, y);
+        if (cells.length > 0) {
+            const isHorizontal = cells.length > 1 && cells[0][0] === cells[1][0];
+            const minX = Math.min(...cells.map(c => c[0]));
+            const minY = Math.min(...cells.map(c => c[1]));
+            
+            selectedShip = {
+                size: cells.length,
+                orientation: isHorizontal ? 'horizontal' : 'vertical',
+                x: minX,
+                y: minY
+            };
+            ui.updateStatus(`Корабль выбран. Стрелки — перемещение, 0 — поворот, Enter — фиксация`);
         }
+        renderPlacementBoard();
+        highlightSelectedShip();
     }
 }
 
@@ -237,37 +255,62 @@ function handleCellRightClick(x, y) {
 }
 
 function handleKeyDown(e) {
-    if (!selectedShip || selectedShip.x === null) return;
+    logger.debug('PlacementUI', 'Нажата клавиша', { key: e.key, selectedShip: !!selectedShip });
+    
+    if (!selectedShip) return;
     
     let { x, y, size, orientation } = selectedShip;
     
     switch (e.key) {
         case 'ArrowUp':
+            logger.debug('PlacementUI', 'Стрелка ВВЕРХ: удаляем старый корабль', { oldX: x, oldY: y });
+            removeShip(placementBoard, x, y);
             selectedShip.x = Math.max(0, x - 1);
+            placeShip(placementBoard, selectedShip.x, selectedShip.y, size, orientation);
+            logger.debug('PlacementUI', 'Стрелка ВВЕРХ: новая позиция', { newX: selectedShip.x, newY: selectedShip.y });
             break;
         case 'ArrowDown':
+            logger.debug('PlacementUI', 'Стрелка ВНИЗ: удаляем старый корабль', { oldX: x, oldY: y });
+            removeShip(placementBoard, x, y);
             selectedShip.x = Math.min(BOARD_SIZE - (orientation === 'vertical' ? size : 1), x + 1);
+            placeShip(placementBoard, selectedShip.x, selectedShip.y, size, orientation);
+            logger.debug('PlacementUI', 'Стрелка ВНИЗ: новая позиция', { newX: selectedShip.x, newY: selectedShip.y });
             break;
         case 'ArrowLeft':
+            logger.debug('PlacementUI', 'Стрелка ВЛЕВО: удаляем старый корабль', { oldX: x, oldY: y });
+            removeShip(placementBoard, x, y);
             selectedShip.y = Math.max(0, y - 1);
+            placeShip(placementBoard, selectedShip.x, selectedShip.y, size, orientation);
+            logger.debug('PlacementUI', 'Стрелка ВЛЕВО: новая позиция', { newX: selectedShip.x, newY: selectedShip.y });
             break;
         case 'ArrowRight':
+            logger.debug('PlacementUI', 'Стрелка ВПРАВО: удаляем старый корабль', { oldX: x, oldY: y });
+            removeShip(placementBoard, x, y);
             selectedShip.y = Math.min(BOARD_SIZE - (orientation === 'horizontal' ? size : 1), y + 1);
+            placeShip(placementBoard, selectedShip.x, selectedShip.y, size, orientation);
+            logger.debug('PlacementUI', 'Стрелка ВПРАВО: новая позиция', { newX: selectedShip.x, newY: selectedShip.y });
             break;
-        case 'r':
-        case 'R':
-            selectedShip.orientation = selectedShip.orientation === 'horizontal' ? 'vertical' : 'horizontal';
-            ui.updateStatus(`Ориентация: ${selectedShip.orientation === 'horizontal' ? 'горизонталь' : 'вертикаль'}`);
-            break;
-        case 'Enter':
-            if (placeShip(placementBoard, selectedShip.x, selectedShip.y, size, selectedShip.orientation)) {
-                selectedShip = null;
+        case '0':
+            e.preventDefault();
+            logger.debug('PlacementUI', 'Поворот корабля', { x, y, orientation });
+            if (rotateShip(placementBoard, x, y)) {
+                const newCells = findShip(placementBoard, x, y);
+                if (newCells.length > 0) {
+                    const newIsHorizontal = newCells.length > 1 && newCells[0][0] === newCells[1][0];
+                    const newMinX = Math.min(...newCells.map(c => c[0]));
+                    const newMinY = Math.min(...newCells.map(c => c[1]));
+                    selectedShip.orientation = newIsHorizontal ? 'horizontal' : 'vertical';
+                    selectedShip.x = newMinX;
+                    selectedShip.y = newMinY;
+                    logger.debug('PlacementUI', 'Поворот: новое состояние', { orientation: selectedShip.orientation, x: selectedShip.x, y: selectedShip.y });
+                }
                 renderPlacementBoard();
                 updatePalette();
                 checkCompletion();
-                ui.updateStatus('Корабль размещён');
+                ui.updateStatus('Корабль повёрнут');
             } else {
-                ui.updateStatus('Нельзя разместить корабль здесь');
+                logger.debug('PlacementUI', 'Поворот: не удался', { x, y, orientation });
+                ui.updateStatus('Нельзя повернуть корабль здесь');
             }
             break;
         default:
