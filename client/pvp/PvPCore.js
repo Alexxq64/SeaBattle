@@ -6,6 +6,7 @@ import * as ui from '../ui.js';
 import { renderBoard } from '../core/render.js';
 import { makeAttack, checkWin, CELL_HIT, CELL_MISS, TOTAL_SHIP_CELLS } from '../core/attack.js';
 import { initPlacementUI, showPlacementScreen, hidePlacementScreen } from '../placement/placementUI.js';
+import { sound } from '../sound.js';
 
 export function createPvPController(socket, dom) {
     let myRole = null;
@@ -92,6 +93,7 @@ export function createPvPController(socket, dom) {
                 return;
             }
             
+            sound.play('shoot');
             logger.info('PvPCore', 'Атака', { x, y, myRole });
             socket.emit('shoot', { x, y, shooter: myRole });
         };
@@ -118,7 +120,9 @@ export function createPvPController(socket, dom) {
         renderBoard(playerBoardEl, playerBoard, false);
         
         if (result === 'hit') {
+            sound.play('hit');
             if (sunk) {
+                sound.play('sunk');
                 ui.updateStatus('Противник уничтожил ваш корабль!');
                 logger.info('PvPCore', 'Противник уничтожил корабль', { x, y });
             } else {
@@ -126,9 +130,11 @@ export function createPvPController(socket, dom) {
             }
             if (checkWin(playerBoard)) {
                 gameActive = false;
+                sound.play('win');
                 ui.updateStatus('💀 ПОРАЖЕНИЕ! 💀');
             }
         } else if (result === 'miss') {
+            sound.play('miss');
             ui.updateStatus('Противник промахнулся!');
         }
     });
@@ -187,18 +193,22 @@ export function createPvPController(socket, dom) {
             
             if (data.result === 'hit') {
                 if (data.sunk) {
+                    sound.play('sunk');
                     ui.updateStatus('Корабль уничтожен!');
                     logger.info('PvPCore', 'Игрок уничтожил корабль противника', { x: data.x, y: data.y });
                 } else {
+                    sound.play('hit');
                     ui.updateStatus('Попадание!');
                 }
                 // Подсчёт попаданий вместо checkWin
                 const hitCount = enemyBoard.flat().filter(cell => cell === CELL_HIT).length;
                 if (hitCount === TOTAL_SHIP_CELLS) {
                     gameActive = false;
+                    sound.play('win');
                     ui.updateStatus('🎉 ПОБЕДА! 🎉');
                 }
             } else {
+                sound.play('miss');
                 ui.updateStatus('Промах! Ход противника');
             }
         } else {
@@ -213,6 +223,7 @@ export function createPvPController(socket, dom) {
                 }
                 if (checkWin(playerBoard)) {
                     gameActive = false;
+                    sound.play('win');
                     ui.updateStatus('💀 ПОРАЖЕНИЕ! 💀');
                 }
             } else {

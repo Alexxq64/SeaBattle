@@ -2,8 +2,17 @@
 
 import { logger, setLoggerSocket } from './logger.js';
 import * as ui from './ui.js';
+import { sound } from './sound.js';
+
 
 let currentGame = null;
+
+// Загружаем звуки
+sound.load('shoot', 'sounds/shoot.mp3');
+sound.load('miss', 'sounds/miss.mp3', 1);
+sound.load('hit', 'sounds/hit.mp3');
+sound.load('sunk', 'sounds/sunk.mp3');
+sound.load('win', 'sounds/win.mp3', 1);
 
 export function startPvE() {
     logger.info('Main', '🚀 Запуск PvE режима');

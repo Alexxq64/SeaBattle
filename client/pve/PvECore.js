@@ -9,6 +9,7 @@ import { initPlacementUI, showPlacementScreen, hidePlacementScreen } from '../pl
 import { randomPlacement, smartPlacement, densePlacement, edgePlacement, mixedPlacement } from '../placement/placementAI.js';
 import { createEmptyBoard } from '../core/board.js';
 import { createAI } from './PvEAI.js';
+import { sound } from '../sound.js';
 
 // Состояние PvE игры
 let playerBoard = [];
@@ -134,11 +135,15 @@ function playerAttack(x, y) {
     
     logger.info('PvECore', 'Атака игрока', { x, y });
     
+    sound.play('shoot');
+    
     const { result, sunk } = makeAttack(enemyBoard, x, y);
     renderBoard(enemyBoardEl, enemyBoard, true);
     
     if (result === 'hit') {
+        sound.play('hit');
         if (sunk) {
+            sound.play('sunk');
             ui.updateStatus('Корабль уничтожен! Ещё ход');
             logger.info('PvECore', 'Игрок уничтожил корабль AI', { x, y });
         } else {
@@ -147,6 +152,9 @@ function playerAttack(x, y) {
         
         if (checkWin(enemyBoard)) {
             gameActive = false;
+            console.log('🔊 Победа игрока, играем win');
+            setTimeout(() => {}, 1000);
+            sound.play('win');
             ui.updateStatus('🎉 ПОБЕДА! Вы уничтожили все корабли AI! 🎉');
             logger.info('PvECore', 'Победа игрока');
             detachClickHandler();
@@ -156,6 +164,7 @@ function playerAttack(x, y) {
     }
     
     if (result === 'miss') {
+        sound.play('miss');
         ui.updateStatus('Промах! Ход AI');
         currentTurn = 'ai';
         setTimeout(() => aiAttack(), 500);
@@ -180,13 +189,17 @@ function aiAttack() {
     const { x, y } = move;
     logger.info('PvECore', 'AI атакует', { x, y });
     
+    sound.play('shoot');
+    
     const { result, sunk } = makeAttack(playerBoard, x, y);
     renderBoard(playerBoardEl, playerBoard, false);
     
     ai.onResult(result === 'hit', sunk, x, y);
     
     if (result === 'hit') {
+        sound.play('hit');
         if (sunk) {
+            sound.play('sunk');
             ui.updateStatus('AI уничтожил ваш корабль! Ещё ход AI');
             logger.info('PvECore', 'AI уничтожил корабль игрока', { x, y });
         } else {
@@ -205,6 +218,7 @@ function aiAttack() {
     }
     
     if (result === 'miss') {
+        sound.play('miss');
         ui.updateStatus('AI промахнулся! Ваш ход');
         currentTurn = 'player';
         renderBoard(enemyBoardEl, enemyBoard, true);

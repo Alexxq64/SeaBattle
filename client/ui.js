@@ -2,6 +2,7 @@
 
 import { logger } from './logger.js';
 import { startPvE, startPvP } from './main.js';
+import { sound } from './sound.js';
 
 // Переключение экранов
 export function showScreen(screenId) {
@@ -62,9 +63,26 @@ export function getSelectedDifficulty() {
     return difficulty;
 }
 
+// Кнопка включения/выключения звука
+let soundEnabled = true;
+
+export function initSoundButton() {
+    const soundBtn = document.getElementById('soundToggle');
+    if (!soundBtn) return;
+    
+    soundBtn.onclick = () => {
+        soundEnabled = !soundEnabled;
+        sound.setEnabled(soundEnabled);
+        soundBtn.textContent = soundEnabled ? '🔊 Звук вкл' : '🔇 Звук выкл';
+        logger.info('UI', 'Звук', { enabled: soundEnabled });
+    };
+}
+
 // Инициализация всех кнопок
 export function initButtons() {
     logger.info('UI', 'Инициализация кнопок');
+    
+    initSoundButton();
     
     // Кнопка PvE
     const pveBtn = document.getElementById('pveBtn');
