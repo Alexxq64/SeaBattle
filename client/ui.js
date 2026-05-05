@@ -78,11 +78,56 @@ export function initSoundButton() {
     };
 }
 
+// Кнопки выбора темы
+export function initThemeButtons() {
+    const themeSea = document.getElementById('themeSea');
+    const themeSpace = document.getElementById('themeSpace');
+    const themePirate = document.getElementById('themePirate');
+    
+    if (themeSea) {
+        themeSea.onclick = () => {
+            document.body.classList.remove('theme-space', 'theme-pirate');
+            document.body.classList.add('theme-sea');
+            localStorage.setItem('theme', 'sea');
+            logger.info('UI', 'Тема: Морская');
+        };
+    }
+    
+    if (themeSpace) {
+        themeSpace.onclick = () => {
+            document.body.classList.remove('theme-sea', 'theme-pirate');
+            document.body.classList.add('theme-space');
+            localStorage.setItem('theme', 'space');
+            logger.info('UI', 'Тема: Космическая');
+        };
+    }
+    
+    if (themePirate) {
+        themePirate.onclick = () => {
+            document.body.classList.remove('theme-sea', 'theme-space');
+            document.body.classList.add('theme-pirate');
+            localStorage.setItem('theme', 'pirate');
+            logger.info('UI', 'Тема: Пиратская');
+        };
+    }
+    
+    // Восстановление сохранённой темы
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'space') {
+        themeSpace?.click();
+    } else if (savedTheme === 'pirate') {
+        themePirate?.click();
+    } else {
+        themeSea?.click();
+    }
+}
+
 // Инициализация всех кнопок
 export function initButtons() {
     logger.info('UI', 'Инициализация кнопок');
     
     initSoundButton();
+    initThemeButtons();
     
     // Кнопка PvE
     const pveBtn = document.getElementById('pveBtn');

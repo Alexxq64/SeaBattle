@@ -3,12 +3,80 @@
     user-select: none;
 }
 
+/* =========================
+   ТЕМЫ (CSS переменные)
+========================= */
+
+/* Тема по умолчанию (морская) */
+:root {
+    --bg-body: #2c3e66;
+    --bg-board: #0f1a2e;
+    --cell-water: #2c4a7a;
+    --cell-water-hover: #3a6a9a;
+    --cell-ship: #4a7a4a;
+    --cell-hit: #cc3333;
+    --cell-miss: #666;
+    --board-container: #1a2a4a;
+    --button-bg: #4a7a9a;
+    --button-bg-disabled: #666;
+    --text-color: white;
+    --ship-palette-bg: #4a7a4a;
+    --ship-palette-hover: #5a9a5a;
+    --ship-palette-placed: #2a4a2a;
+    --ship-cell: #4a7a4a;
+    --highlight: #6a9a6a;
+    --highlight-shadow: #ffcc00;
+}
+
+/* Космическая тема */
+body.theme-space {
+    --bg-body: #1a1a2e;
+    --bg-board: #0d0d1a;
+    --cell-water: #2a2a4a;
+    --cell-water-hover: #3a3a6a;
+    --cell-ship: #6a4a9a;
+    --cell-hit: #cc3333;
+    --cell-miss: #555;
+    --board-container: #16162a;
+    --button-bg: #5a4a8a;
+    --button-bg-disabled: #444;
+    --text-color: #ddd;
+    --ship-palette-bg: #6a4a9a;
+    --ship-palette-hover: #7a5aaa;
+    --ship-palette-placed: #3a2a5a;
+    --ship-cell: #6a4a9a;
+    --highlight: #5a4a8a;
+    --highlight-shadow: #aa88ff;
+}
+
+/* Пиратская тема (чёрно-оранжевая) */
+body.theme-pirate {
+    --bg-body: #1a1a1a;
+    --bg-board: #0d0d0d;
+    --cell-water: #2a2a2a;
+    --cell-water-hover: #3a3a3a;
+    --cell-ship: #ff8800;
+    --cell-hit: #cc3333;
+    --cell-miss: #555;
+    --board-container: #111111;
+    --button-bg: #ff8800;
+    --button-bg-disabled: #664400;
+    --text-color: #ffaa44;
+    --ship-palette-bg: #ff8800;
+    --ship-palette-hover: #ffaa33;
+    --ship-palette-placed: #664400;
+    --ship-cell: #ff8800;
+    --highlight: #ff8800;
+    --highlight-shadow: #ffaa44;
+}
+
 body {
     font-family: Arial, sans-serif;
     text-align: center;
-    background: #2c3e66;
+    background: var(--bg-body);
     margin: 0;
     padding: 20px;
+    color: var(--text-color);
 }
 
 .game-container {
@@ -19,9 +87,13 @@ body {
 }
 
 .board-container {
-    background: #1a2a4a;
+    background: var(--board-container);
     padding: 15px;
     border-radius: 12px;
+}
+
+.board-container h3 {
+    color: var(--text-color);
 }
 
 .board {
@@ -29,33 +101,33 @@ body {
     grid-template-columns: repeat(10, 35px);
     grid-template-rows: repeat(10, 35px);
     gap: 2px;
-    background: #0f1a2e;
+    background: var(--bg-board);
     padding: 10px;
 }
 
 .cell {
-    background-color: #2c4a7a;
+    background-color: var(--cell-water);
     border-radius: 3px;
     cursor: pointer;
     transition: 0.1s;
 }
 
 .cell:hover {
-    background-color: #3a6a9a;
+    background-color: var(--cell-water-hover);
 }
 
 /* Типы клеток */
 .cell.ship {
-    background-color: #4a7a4a;
+    background-color: var(--cell-ship);
 }
 
 .cell.hit {
-    background-color: #cc3333;
+    background-color: var(--cell-hit);
     position: relative;
 }
 
 .cell.miss {
-    background-color: #666;
+    background-color: var(--cell-miss);
 }
 
 .controls {
@@ -66,17 +138,18 @@ button {
     padding: 10px 20px;
     font-size: 16px;
     cursor: pointer;
-    background: #4a7a9a;
+    background: var(--button-bg);
     color: white;
     border: none;
     border-radius: 5px;
+    margin: 0 5px;
 }
 
 .status {
     font-size: 18px;
     font-weight: bold;
     margin: 15px;
-    color: white;
+    color: var(--text-color);
 }
 
 .mode-select {
@@ -85,13 +158,13 @@ button {
 
 .mode-select label {
     margin: 0 15px;
-    color: white;
+    color: var(--text-color);
     cursor: pointer;
 }
 
 .difficulty-select {
     margin-bottom: 15px;
-    color: white;
+    color: var(--text-color);
 }
 
 .difficulty-select select {
@@ -102,6 +175,14 @@ button {
 
 .hidden {
     display: none;
+}
+
+/* Кнопки выбора темы */
+.theme-buttons {
+    margin: 10px 0 20px 0;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
 }
 
 /* =========================
@@ -117,26 +198,30 @@ button {
 }
 
 .placement-board-container {
-    background: #1a2a4a;
+    background: var(--board-container);
     padding: 15px;
     border-radius: 12px;
 }
 
+.placement-board-container h3 {
+    color: var(--text-color);
+}
+
 .ship-palette {
-    background: #1a2a4a;
+    background: var(--board-container);
     padding: 15px;
     border-radius: 12px;
     min-width: 150px;
 }
 
 .ship-palette h3 {
-    color: white;
+    color: var(--text-color);
     margin-top: 0;
     text-align: center;
 }
 
 .palette-ship {
-    background: #4a7a4a;
+    background: var(--ship-palette-bg);
     margin: 10px;
     padding: 8px;
     border-radius: 5px;
@@ -149,12 +234,12 @@ button {
 }
 
 .palette-ship:hover {
-    background: #5a9a5a;
+    background: var(--ship-palette-hover);
     transform: scale(1.02);
 }
 
 .palette-ship.placed {
-    background: #2a4a2a;
+    background: var(--ship-palette-placed);
     opacity: 0.5;
     cursor: not-allowed;
 }
@@ -167,7 +252,7 @@ button {
 .ship-cell {
     width: 25px;
     height: 25px;
-    background-color: #4a7a4a;
+    background-color: var(--ship-cell);
     border-radius: 3px;
 }
 
@@ -192,11 +277,11 @@ button {
 }
 
 #placementReadyBtn:disabled {
-    background: #666;
+    background: var(--button-bg-disabled);
     cursor: not-allowed;
 }
 
 .cell.placement-highlight {
-    background-color: #6a9a6a;
-    box-shadow: 0 0 0 2px #ffcc00;
+    background-color: var(--highlight);
+    box-shadow: 0 0 0 2px var(--highlight-shadow);
 }
