@@ -92,10 +92,11 @@ function onPlacementComplete(placementBoard) {
     renderBoard(playerBoardEl, playerBoard, false);
     renderBoard(enemyBoardEl, enemyBoard, true);
     
+    // Навешиваем обработчик кликов на поле противника (в любом случае)
+    attachClickHandler();
+    
     if (currentTurn === 'player') {
         ui.updateStatus('Ваш ход!');
-        // Навешиваем обработчик кликов на поле противника
-        attachClickHandler();
     } else {
         ui.updateStatus('Ход AI...');
         setTimeout(() => aiAttack(), 500);

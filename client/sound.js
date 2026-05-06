@@ -3,7 +3,7 @@
 class SoundManager {
     constructor() {
         this.sounds = {};
-        this.enabled = true;
+        this.enabled = false;
     }
 
 load(name, url, volume = 0.5) {

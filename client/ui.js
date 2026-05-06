@@ -64,7 +64,7 @@ export function getSelectedDifficulty() {
 }
 
 // Кнопка включения/выключения звука
-let soundEnabled = true;
+let soundEnabled = false;
 
 export function initSoundButton() {
     const soundBtn = document.getElementById('soundToggle');
