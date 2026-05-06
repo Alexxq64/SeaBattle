@@ -118,6 +118,7 @@ io.on('connection', (socket) => {
             console.log('Оба игрока готовы, отправляем bothReady');
             // Случайный выбор первого хода
             const firstTurn = Math.random() < 0.5 ? 'player1' : 'player2';
+            currentTurn = firstTurn;  // ← синхронизируем currentTurn с первым ходом
             console.log(`Случайный первый ход: ${firstTurn}`);
             io.emit('bothReady', { firstTurn });
             readyPlayers = {};
@@ -128,7 +129,7 @@ io.on('connection', (socket) => {
     socket.on('resetGame', () => {
         console.log(`Сброс игры от ${socket.id}`);
         
-        currentTurn = 'player1';
+        // Не сбрасываем currentTurn, он определится заново при следующей расстановке
         readyPlayers = {};
         readyCount = 0;
         
