@@ -1,4 +1,3 @@
-// server.cjs
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -117,7 +116,10 @@ io.on('connection', (socket) => {
         
         if (readyCount === 2) {
             console.log('Оба игрока готовы, отправляем bothReady');
-            io.emit('bothReady');
+            // Случайный выбор первого хода
+            const firstTurn = Math.random() < 0.5 ? 'player1' : 'player2';
+            console.log(`Случайный первый ход: ${firstTurn}`);
+            io.emit('bothReady', { firstTurn });
             readyPlayers = {};
             readyCount = 0;
         }

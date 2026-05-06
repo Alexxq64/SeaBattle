@@ -68,14 +68,21 @@ let soundEnabled = true;
 
 export function initSoundButton() {
     const soundBtn = document.getElementById('soundToggle');
-    if (!soundBtn) return;
+    const soundIcon = document.getElementById('soundIcon');
+    if (!soundBtn || !soundIcon) return;
+    
+    const updateSoundUI = () => {
+        soundIcon.textContent = soundEnabled ? '🔊' : '🔇';
+        sound.setEnabled(soundEnabled);
+        logger.info('UI', 'Звук', { enabled: soundEnabled });
+    };
     
     soundBtn.onclick = () => {
         soundEnabled = !soundEnabled;
-        sound.setEnabled(soundEnabled);
-        soundBtn.textContent = soundEnabled ? '🔊 Звук вкл' : '🔇 Звук выкл';
-        logger.info('UI', 'Звук', { enabled: soundEnabled });
+        updateSoundUI();
     };
+    
+    updateSoundUI();
 }
 
 // Кнопки выбора темы

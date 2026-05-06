@@ -49,10 +49,10 @@ export function createPvPController(socket, dom) {
         hidePlacementScreen();
     }
     
-    function startGame() {
-        logger.info('PvPCore', 'Старт игры');
+    function startGame(firstTurn) {
+        logger.info('PvPCore', 'Старт игры, первый ход:', firstTurn);
         gameActive = true;
-        currentTurn = 'player1'; 
+        currentTurn = firstTurn;
         
         for (let i = 0; i < 10; i++) {
             enemyBoard[i] = [];
@@ -63,7 +63,7 @@ export function createPvPController(socket, dom) {
         
         renderBoard(playerBoardEl, playerBoard, false);
         renderBoard(enemyBoardEl, enemyBoard, true);
-        ui.updateStatus('Игра началась');
+        ui.updateStatus(currentTurn === myRole ? 'Ваш ход!' : 'Ход противника');
         attachClickHandler();
     }
     
@@ -154,9 +154,10 @@ export function createPvPController(socket, dom) {
         }
     });
     
-    socket.on('bothReady', () => {
-        logger.info('PvPCore', 'bothReady');
-        startGame();
+    socket.on('bothReady', (data) => {
+        const firstTurn = data.firstTurn;
+        logger.info('PvPCore', 'bothReady, первый ход:', firstTurn);
+        startGame(firstTurn);
     });
     
     socket.on('stateUpdate', (data) => {

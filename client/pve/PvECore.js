@@ -82,17 +82,26 @@ function onPlacementComplete(placementBoard) {
     
     // Запускаем игру
     gameActive = true;
-    currentTurn = 'player';
+    
+    // Случайный выбор первого хода
+    const firstTurn = Math.random() < 0.5 ? 'player' : 'ai';
+    currentTurn = firstTurn;
+    logger.info('PvECore', 'Первый ход:', { firstTurn });
     
     // Отрисовываем поля
     renderBoard(playerBoardEl, playerBoard, false);
     renderBoard(enemyBoardEl, enemyBoard, true);
     
-    ui.updateStatus('Ваш ход!');
-    logger.info('PvECore', 'Игра началась, ход игрока');
+    if (currentTurn === 'player') {
+        ui.updateStatus('Ваш ход!');
+        // Навешиваем обработчик кликов на поле противника
+        attachClickHandler();
+    } else {
+        ui.updateStatus('Ход AI...');
+        setTimeout(() => aiAttack(), 500);
+    }
     
-    // Навешиваем обработчик кликов на поле противника
-    attachClickHandler();
+    logger.info('PvECore', 'Игра началась, ход:', currentTurn);
 }
 
 // Обработчик кликов по полю противника
