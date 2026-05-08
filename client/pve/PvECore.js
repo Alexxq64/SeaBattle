@@ -226,7 +226,7 @@ function aiAttack() {
     const { result, sunk } = makeAttack(playerBoard, x, y);
     renderBoard(playerBoardEl, playerBoard, false);
     
-    ai.onResult(result === 'hit', sunk, x, y);
+    ai.onResult(result === 'hit', sunk, x, y, shipCells);
     
     if (result === 'hit') {
         animateCell(playerBoardEl, x, y, 'hit-pulse', 300);

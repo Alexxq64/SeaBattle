@@ -4,6 +4,28 @@
 import { logger } from '../logger.js';
 import { BOARD_SIZE } from '../core/attack.js';
 
+// ==================== ОБЩАЯ ФУНКЦИЯ ====================
+function excludeAroundShip(target, shipCells, boardSize, isSet = false) {
+    const key = (x, y) => `${x},${y}`;
+    for (const [x, y] of shipCells) {
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (nx >= 0 && nx < boardSize && ny >= 0 && ny < boardSize) {
+                    if (isSet) {
+                        const k = key(nx, ny);
+                        if (!target.has(k)) target.add(k);
+                    } else {
+                        const idx = target.findIndex(([ax, ay]) => ax === nx && ay === ny);
+                        if (idx !== -1) target.splice(idx, 1);
+                    }
+                }
+            }
+        }
+    }
+}
+
 // ==================== EASY ====================
 function createEasyAI() {
     logger.info('PvEAI', 'Создание Easy AI');
@@ -96,12 +118,15 @@ function createMediumAI() {
         return { x, y };
     }
     
-    function onResult(hit, sunk, x, y) {
+    function onResult(hit, sunk, x, y, sunkCellsArray) {
         if (hit && !sunk) {
             lastHit = [x, y];
             logger.debug('PvEAI', 'Medium запомнил попадание', { x, y });
         }
         if (sunk) {
+            if (sunkCellsArray) {
+                excludeAroundShip(availableCells, sunkCellsArray, BOARD_SIZE, false);
+            }
             lastHit = null;
             logger.debug('PvEAI', 'Medium корабль уничтожен, сброс lastHit');
         }
@@ -268,7 +293,7 @@ function createHardAI() {
 
     function makeMove() {
 
-        // 🎯 TARGET MODE
+        // TARGET MODE
         if (hits.length > 0) {
 
             if (hits.length >= 2) {
@@ -295,7 +320,7 @@ function createHardAI() {
             hits = [];
         }
 
-        // 🔍 SEARCH MODE
+        // SEARCH MODE
         const map = buildMap();
 
         let best = null;
@@ -330,9 +355,10 @@ function createHardAI() {
                 for (const [sx, sy] of sunkCellsArray) {
                     sunkCells.add(key(sx, sy));
                 }
+                excludeAroundShip(shotCells, sunkCellsArray, boardSize, true);
             }
             hits = [];
-            hitCells.clear(); // сбрасываем только локальный target state
+            hitCells.clear();
         }
     }
 
