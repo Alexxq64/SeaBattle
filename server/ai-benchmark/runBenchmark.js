@@ -12,7 +12,7 @@ import { analyze } from './ResultsCollector.js';
 const originalLog = console.log;
 console.log = () => {};
 
-const GAMES_COUNT = 500;
+const GAMES_COUNT = 100;
 
 const levels = ['easy', 'medium', 'hard'];
 
